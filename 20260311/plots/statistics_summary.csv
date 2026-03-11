@@ -1,0 +1,7 @@
+Configuration,Avg Build Time (s),Binary Size (MB),Avg Startup Time (ms),Avg Throughput (req/s),Avg Max RSS (MB),Max Throughput Density
+none,44.47,,32.6,16117.82,155.95,104.3
+run-time-initialize-file-system-providers,44.78,86.46,35.9,16071.21,157.07,103.23
+run-time-initialize-resource-bundles,44.61,86.25,35.5,16143.79,157.02,105.55
+run-time-initialize-jdk,44.73,86.53,42.7,16169.18,158.03,105.27
+class-for-name-respects-class-loader,44.78,88.59,38.0,16214.59,159.12,103.94
+all,45.27,88.86,37.3,16048.81,159.68,103.2
