@@ -18,12 +18,14 @@ else
   URL_PATH="/"
 fi
 
+if date +%s%N &>/dev/null; then
+  DATE_CMD=date
+else
+  DATE_CMD=gdate
+fi
+
 function _date() {
-    current=$(date +%s%N)
-    if [ $? -ne 0 ]; then
-      current=$(gdate +%s%N)
-    fi
-    echo "$current"
+    $DATE_CMD +%s%N
 }
 
 # Start the client loop before the application so it's already polling
