@@ -281,7 +281,9 @@ int main(int argc, char *argv[]) {
 	char req[sizeof(path) + sizeof(host) + 100], buf[64];
 	snprintf(req, sizeof(req), "GET %s HTTP/1.0\r\nHost: %s\r\n\r\n", path, host);
 
-	int attempts = 0, code = 0;
+	const int req_len = strlen(req);
+	int attempts = 0;
+	int code = 0;
 	long end_time = 0;
 
 	gettime_accuracy();
@@ -292,10 +294,9 @@ int main(int argc, char *argv[]) {
 		for (int i = 0; i < 2000; i++) {
 			int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 			if (connect(fd, res->ai_addr, res->ai_addrlen) == 0 &&
-				send(fd, req, strlen(req), 0) > 0 &&
+				send(fd, req, req_len, 0) > 0 &&
 				recv(fd, buf, sizeof(buf) - 1, 0) > 0 &&
-				sscanf(buf, "HTTP/%*d.%*d %d", &code) == 1 &&
-				code >= 200 && code < 300) {
+				buf[9] == '2') {
 				fprintf(stderr, "Should not reach here\n");
 				return 1;
 			}
@@ -334,10 +335,12 @@ int main(int argc, char *argv[]) {
 		int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 		attempts++;
 		if (connect(fd, res->ai_addr, res->ai_addrlen) == 0 &&
-			send(fd, req, strlen(req), 0) > 0 &&
+			send(fd, req, req_len, 0) > 0 &&
 			recv(fd, buf, sizeof(buf) - 1, 0) > 0 &&
-			sscanf(buf, "HTTP/%*d.%*d %d", &code) == 1 &&
-			code >= 200 && code < 300) {
+			// HTTP status code: "HTTP/X.Y SSS" — the 3-digit code always starts at byte 9.
+			// We parse it directly instead of using sscanf to minimize per-iteration overhead
+			// in the tight polling loop.
+			buf[9] == '2') {
 			end_time = now_nsec();
 			close(fd);
 			break;
@@ -356,10 +359,9 @@ int main(int argc, char *argv[]) {
 		for (int i = 0; i < 1000; i++) {
 			int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 			if (connect(fd, res->ai_addr, res->ai_addrlen) == 0 &&
-				send(fd, req, strlen(req), 0) > 0 &&
+				send(fd, req, req_len, 0) > 0 &&
 				recv(fd, buf, sizeof(buf) - 1, 0) > 0 &&
-				sscanf(buf, "HTTP/%*d.%*d %d", &code) == 1 &&
-				code >= 200 && code < 300) {
+				buf[9] == '2') {
 				// We got a successful request
 			} else {
 				fprintf(stderr, "Should not reach here\n");
@@ -374,6 +376,7 @@ int main(int argc, char *argv[]) {
 	freeaddrinfo(res);
 
 	start_time = *((long*)ready_flag);
+	code = (buf[9] - '0') * 100 + (buf[10] - '0') * 10 + (buf[11] - '0');
 	printf("http_code=%d attempts=%d elapsed=%ld ns\n", code, attempts, end_time - start_time);
 
 	// Clean up: kill child process
