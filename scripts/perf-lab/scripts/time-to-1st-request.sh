@@ -104,6 +104,9 @@ ts=$(_date)
 ( exec $RUN_CMD &>"$LOG_FILE" ) &
 APP_PID=$!
 
+# Wait for the client loop to get a successful response
+wait "$CURL_PID" 2> /dev/null
+
 (
 t1=$(_date)
 for i in $(seq 1000); do
