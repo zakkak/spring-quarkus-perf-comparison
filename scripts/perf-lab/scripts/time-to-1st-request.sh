@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-TARGET_URL=$1
+RUN_CMD="$1"
+TARGET_URL="$2"
+LOG_FILE="$3"
 
 function _date() {
     current=$(date +%s%N)
@@ -9,6 +11,13 @@ function _date() {
     fi
     echo "$current"
 }
+
+# Start the application
+eval "$RUN_CMD" &>"$LOG_FILE" &
+APP_PID=$!
+
+# Ensure the application is killed when the script exits (e.g. on timeout)
+trap "kill -15 $APP_PID 2>/dev/null" EXIT
 
 ts=$(_date)
 
