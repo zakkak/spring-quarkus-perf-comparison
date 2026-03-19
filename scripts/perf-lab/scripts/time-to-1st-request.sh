@@ -137,5 +137,5 @@ trap "kill -15 $APP_PID $CURL_PID 2>/dev/null; wait $APP_PID 2>/dev/null; rm -f 
 # Wait for the client loop to get a successful response
 wait $CURL_PID 2>/dev/null
 
-TTFR=$((($(cat "$END_TS_FILE") - ts)/1000000))
-echo "${TTFR}"
+TTFR=$(($(cat "$END_TS_FILE") - ts))
+echo "TTFR=${TTFR} ns"

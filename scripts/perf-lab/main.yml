@@ -365,11 +365,11 @@ scripts:
             - regex: Terminated
               then:
                 - abort: Run ${{RUNTIME.runCmd}} didn't start within allotted timeout
-            - regex: .*\D.*
+            - regex: TTFR=(?<nanoseconds>\\d+) ms
               then:
-                - abort: Timeout script returned a non-numeric value
+                - set-state: START_TIME ${{= ${{nanoseconds}} / 1000000 }}
               else:
-                - set-state: START_TIME
+                - abort: Timeout script returned invalid output
         - script: state-array-push
           with:
             array: RUN.output.results.${{RUNTIME.name}}.startup.timings
