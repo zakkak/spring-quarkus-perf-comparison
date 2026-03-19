@@ -172,6 +172,38 @@ static int parse_url(const char *url, char *host, char *port, char *path) {
 	return 0;
 }
 
+void gettime_accuracy() {
+	struct timespec ts;
+	clock_getres(CLOCK_MONOTONIC_RAW, &ts);
+	long time_accuracy = ts.tv_nsec;
+	fprintf(stderr, "CLOCK_MONOTONIC_RAW accuracy: %ld ns\n", time_accuracy);
+
+	long t1 = now_nsec();
+	long t2 = now_nsec();
+	long t3 = now_nsec();
+	long t4 = now_nsec();
+	long t5 = now_nsec();
+	long t6 = now_nsec();
+	long t7 = now_nsec();
+	long t8 = now_nsec();
+	long t9 = now_nsec();
+	long t10 = now_nsec();
+	long t11 = now_nsec();
+	long t12 = now_nsec();
+
+	fprintf(stderr, "Time elapsed between two gettime calls: %ld ns\n", t2 - t1);
+	fprintf(stderr, "Time elapsed between two gettime calls: %ld ns\n", t3 - t2);
+	fprintf(stderr, "Time elapsed between two gettime calls: %ld ns\n", t4 - t3);
+	fprintf(stderr, "Time elapsed between two gettime calls: %ld ns\n", t5 - t4);
+	fprintf(stderr, "Time elapsed between two gettime calls: %ld ns\n", t6 - t5);
+	fprintf(stderr, "Time elapsed between two gettime calls: %ld ns\n", t7 - t6);
+	fprintf(stderr, "Time elapsed between two gettime calls: %ld ns\n", t8 - t7);
+	fprintf(stderr, "Time elapsed between two gettime calls: %ld ns\n", t9 - t8);
+	fprintf(stderr, "Time elapsed between two gettime calls: %ld ns\n", t10 - t9);
+	fprintf(stderr, "Time elapsed between two gettime calls: %ld ns\n", t11 - t10);
+	fprintf(stderr, "Time elapsed between two gettime calls: %ld ns\n", t12 - t11);
+}
+
 int main(int argc, char *argv[]) {
 	if (argc < 5) {
 		fprintf(stderr, "Usage: %s <command> <log_path> <url> <core> [timeout in seconds]\n", argv[0]);
@@ -252,6 +284,27 @@ int main(int argc, char *argv[]) {
 	int attempts = 0, code = 0;
 	long end_time = 0;
 
+	gettime_accuracy();
+	{
+		// estimate_failed_attempts_overhead(req, res);
+		// Poll URL 2000 times
+		long t1 = now_nsec();
+		for (int i = 0; i < 2000; i++) {
+			int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+			if (connect(fd, res->ai_addr, res->ai_addrlen) == 0 &&
+				send(fd, req, strlen(req), 0) > 0 &&
+				recv(fd, buf, sizeof(buf) - 1, 0) > 0 &&
+				sscanf(buf, "HTTP/%*d.%*d %d", &code) == 1 &&
+				code >= 200 && code < 300) {
+				fprintf(stderr, "Should not reach here\n");
+				return 1;
+			}
+			close(fd);
+		}
+		long t2 = now_nsec();
+		fprintf(stderr, "Average time per failed request: %f ns\n", (t2 - t1) / 2000.0);
+	}
+
 	// Fork and execute command
 	pid_t child_pid = forkme(cmd_args, log_path, ready_flag);
 
@@ -294,6 +347,28 @@ int main(int argc, char *argv[]) {
 
 	if (end_time == 0) {
 		end_time = now_nsec();
+	}
+
+	{
+		// estimate_successfull_request_overhead(req, res);
+		// Poll URL 1000 times
+		long t1 = now_nsec();
+		for (int i = 0; i < 1000; i++) {
+			int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+			if (connect(fd, res->ai_addr, res->ai_addrlen) == 0 &&
+				send(fd, req, strlen(req), 0) > 0 &&
+				recv(fd, buf, sizeof(buf) - 1, 0) > 0 &&
+				sscanf(buf, "HTTP/%*d.%*d %d", &code) == 1 &&
+				code >= 200 && code < 300) {
+				// We got a successful request
+			} else {
+				fprintf(stderr, "Should not reach here\n");
+				return 1;
+			}
+			close(fd);
+		}
+		long t2 = now_nsec();
+		fprintf(stderr, "Average time per successfull request: %f ns\n", (t2 - t1) / 1000.0);
 	}
 
 	freeaddrinfo(res);
